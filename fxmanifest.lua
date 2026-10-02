@@ -30,4 +30,5 @@ server_scripts {
 client_scripts {
     'client/callbacks.lua',
     'client/main.lua',
+    'client/spawn.lua',
 }
