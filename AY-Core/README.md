@@ -34,8 +34,10 @@ set ay_log_webhook "https://discord.com/api/webhooks/..."
 | `/setgroup [id] [group]` | superadmin | Change a player's group (console works too) |
 | `/car [model]` | admin | Spawn a vehicle and sit in the driver seat |
 | `/dv [radius]` | admin | Delete your vehicle, or the closest one within `radius` |
+| `/revive [id]` | admin | Revive a player (yourself if no id) |
+| `/kill [id]` | admin | Kill a player (yourself if no id) |
 
-Groups and limits are in `ServerConfig.Vehicles` (`config/server.lua`).
+Groups and limits are in `ServerConfig.Vehicles` and `ServerConfig.Health` (`config/server.lua`).
 
 ## Structure
 
@@ -56,7 +58,7 @@ AY-Core/
 │  ├─ permissions.lua
 │  ├─ commands.lua
 │  └─ main.lua
-├─ client/main.lua, client/spawn.lua, client/vehicles.lua
+├─ client/main.lua, client/spawn.lua, client/vehicles.lua, client/health.lua
 └─ sql/install.sql
 ```
 

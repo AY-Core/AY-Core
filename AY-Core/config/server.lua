@@ -41,3 +41,8 @@ ServerConfig.Vehicles = {
     DefaultDeleteRadius = 5.0,     -- /dv with no argument
     MaxDeleteRadius = 25.0,        -- upper limit for /dv [radius]
 }
+
+ServerConfig.Health = {
+    ReviveGroup = 'admin', -- minimum group for /revive
+    KillGroup = 'admin',   -- minimum group for /kill
+}

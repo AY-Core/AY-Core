@@ -60,3 +60,28 @@ AY.RegisterCommand('dv', ServerConfig.Vehicles.DeleteGroup, function(src, args)
     TriggerClientEvent('ay-core:client:deleteVehicle', src, radius + 0.0)
     AY.Logger.Info('vehicles', ('%s (id %s) used /dv (radius %.1f)'):format(GetPlayerName(src) or 'unknown', src, radius))
 end)
+
+-- Shared by /revive and /kill: [id] is optional in-game (defaults to yourself), required from the console.
+local function healthCommand(name, event, verb)
+    return function(src, args)
+        if src ~= 0 and not AY.Security.CheckRate(src, 'cmd:' .. name, { Window = 3000, Max = 5 }) then return end
+
+        local target = args[1] and tonumber(args[1]) or src
+        if target == 0 or not AY.GetPlayer(target) then
+            AY.Reply(src, ('Usage: /%s [id]  (player must be online and loaded)'):format(name))
+            return
+        end
+
+        TriggerClientEvent(event, target)
+
+        local actor = src == 0 and 'console' or ('%s (id %s)'):format(GetPlayerName(src) or 'unknown', src)
+        AY.Logger.Info('health', ('%s %s %s (id %s)'):format(actor, verb, GetPlayerName(target) or 'unknown', target))
+        AY.Reply(src, ('%s %s.'):format(GetPlayerName(target) or target, verb))
+    end
+end
+
+-- /revive [id]
+AY.RegisterCommand('revive', ServerConfig.Health.ReviveGroup, healthCommand('revive', 'ay-core:client:revive', 'revived'))
+
+-- /kill [id]
+AY.RegisterCommand('kill', ServerConfig.Health.KillGroup, healthCommand('kill', 'ay-core:client:kill', 'killed'))
