@@ -33,3 +33,11 @@ ServerConfig.Logging = {
     DiscordWebhook = GetConvar('ay_log_webhook', ''),
     DiscordMinLevel = 'error',
 }
+
+ServerConfig.Vehicles = {
+    SpawnGroup = 'admin',          -- minimum group for /car
+    DeleteGroup = 'admin',         -- minimum group for /dv
+    DeleteCurrentOnSpawn = true,   -- /car removes the vehicle you are already driving
+    DefaultDeleteRadius = 5.0,     -- /dv with no argument
+    MaxDeleteRadius = 25.0,        -- upper limit for /dv [radius]
+}

@@ -27,6 +27,16 @@ set ay_log_webhook "https://discord.com/api/webhooks/..."
 4. First admin, from the **server console**: `setgroup [id] superadmin`
 5. Spawn: AY-Core spawns players and closes the loading screen (`Config.Spawn` in `config/shared.lua`). Set `Config.Spawn.Enabled = false` if you use your own spawn system - then YOUR system must call `ShutdownLoadingScreen()` and `ShutdownLoadingScreenNui()`.
 
+## Commands
+
+| Command | Group | Description |
+|---|---|---|
+| `/setgroup [id] [group]` | superadmin | Change a player's group (console works too) |
+| `/car [model]` | admin | Spawn a vehicle and sit in the driver seat |
+| `/dv [radius]` | admin | Delete your vehicle, or the closest one within `radius` |
+
+Groups and limits are in `ServerConfig.Vehicles` (`config/server.lua`).
+
 ## Structure
 
 ```
@@ -46,7 +56,7 @@ AY-Core/
 │  ├─ permissions.lua
 │  ├─ commands.lua
 │  └─ main.lua
-├─ client/main.lua, client/spawn.lua
+├─ client/main.lua, client/spawn.lua, client/vehicles.lua
 └─ sql/install.sql
 ```
 

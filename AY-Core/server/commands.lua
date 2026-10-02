@@ -26,3 +26,37 @@ AY.RegisterCommand('setgroup', 'superadmin', function(src, args)
     AY.Logger.Info('permissions', ('%s set the group of %s to "%s"'):format(actor, player.GetName(), group))
     AY.Reply(src, ('%s is now "%s".'):format(player.GetName(), group))
 end)
+
+-- /car [model]  - spawns a vehicle and puts you in the driver seat.
+AY.RegisterCommand('car', ServerConfig.Vehicles.SpawnGroup, function(src, args)
+    if src == 0 then
+        AY.Reply(src, 'This command can only be used in-game.')
+        return
+    end
+    if not AY.Security.CheckRate(src, 'cmd:car', { Window = 3000, Max = 3 }) then return end
+
+    local model = args[1] and args[1]:lower()
+    if not AY.Utils.IsNonEmptyString(model, 32) or not model:match('^[%w_]+$') then
+        AY.Reply(src, 'Usage: /car [model]  (e.g. /car adder)')
+        return
+    end
+
+    TriggerClientEvent('ay-core:client:spawnVehicle', src, model, ServerConfig.Vehicles.DeleteCurrentOnSpawn)
+    AY.Logger.Info('vehicles', ('%s (id %s) spawned vehicle "%s"'):format(GetPlayerName(src) or 'unknown', src, model))
+end)
+
+-- /dv [radius]  - deletes the vehicle you are in, or the closest one within the radius.
+AY.RegisterCommand('dv', ServerConfig.Vehicles.DeleteGroup, function(src, args)
+    if src == 0 then
+        AY.Reply(src, 'This command can only be used in-game.')
+        return
+    end
+    if not AY.Security.CheckRate(src, 'cmd:dv', { Window = 3000, Max = 5 }) then return end
+
+    local cfg = ServerConfig.Vehicles
+    local radius = tonumber(args[1]) or cfg.DefaultDeleteRadius
+    radius = math.max(1.0, math.min(radius, cfg.MaxDeleteRadius))
+
+    TriggerClientEvent('ay-core:client:deleteVehicle', src, radius + 0.0)
+    AY.Logger.Info('vehicles', ('%s (id %s) used /dv (radius %.1f)'):format(GetPlayerName(src) or 'unknown', src, radius))
+end)

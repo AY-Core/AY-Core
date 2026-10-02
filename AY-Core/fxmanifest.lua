@@ -37,4 +37,5 @@ server_scripts {
 client_scripts {
     'client/main.lua',
     'client/spawn.lua',
+    'client/vehicles.lua',
 }
