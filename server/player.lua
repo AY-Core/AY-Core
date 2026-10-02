@@ -13,6 +13,7 @@ local function collectIdentifiers(src)
 end
 
 -- Player objects use closures (not `self`), so they stay usable when passed through exports.
+-- Note: from other resources, Save() is fire-and-forget (it awaits the database inside AY-Core).
 local function createPlayer(src, row)
     local self = {}
     local data = {
@@ -22,6 +23,7 @@ local function createPlayer(src, row)
         group = row.group_name,
         identifiers = json.decode(row.identifiers or '{}') or {},
         metadata = AY.Utils.Merge(ServerConfig.Players.DefaultMetadata, json.decode(row.metadata or '{}') or {}),
+        store = json.decode(row.data or '{}') or {}, -- namespaced data of satellite resources
     }
 
     function self.GetSource() return src end
@@ -31,6 +33,7 @@ local function createPlayer(src, row)
     function self.GetGroup() return data.group end
     function self.GetIdentifier(kind) return data.identifiers[kind] end
 
+    -- Core-owned metadata. Satellite resources should use GetData / SetData instead.
     function self.GetMetadata(key)
         if key == nil then return AY.Utils.DeepCopy(data.metadata) end
         return AY.Utils.DeepCopy(data.metadata[key])
@@ -38,6 +41,21 @@ local function createPlayer(src, row)
 
     function self.SetMetadata(key, value)
         data.metadata[key] = value
+    end
+
+    -- Namespaced data: use your resource name as the namespace, e.g. player.SetData('AY-Jobs', 'job', 'police')
+    function self.GetData(namespace, key)
+        local ns = data.store[namespace]
+        if key == nil then return AY.Utils.DeepCopy(ns) end
+        if ns == nil then return nil end
+        return AY.Utils.DeepCopy(ns[key])
+    end
+
+    function self.SetData(namespace, key, value)
+        if type(namespace) ~= 'string' or type(key) ~= 'string' then return false end
+        if type(data.store[namespace]) ~= 'table' then data.store[namespace] = {} end
+        data.store[namespace][key] = value
+        return true
     end
 
     function self.SetGroup(group)
@@ -54,9 +72,11 @@ local function createPlayer(src, row)
     end
 
     function self.Save()
+        pcall(AY.Hooks.Run, 'playerSaving', { source = src, license = data.license })
+
         local ok, err = pcall(AY.DB.Update,
-            'UPDATE ay_players SET name = ?, group_name = ?, metadata = ?, last_seen = CURRENT_TIMESTAMP WHERE id = ?',
-            { data.name, data.group, json.encode(data.metadata), data.id }
+            'UPDATE ay_players SET name = ?, group_name = ?, metadata = ?, data = ?, last_seen = CURRENT_TIMESTAMP WHERE id = ?',
+            { data.name, data.group, json.encode(data.metadata), json.encode(data.store), data.id }
         )
         if not ok then
             AY.Logger.Error('players', ('Failed to save player %s: %s'):format(data.license, err))
@@ -78,6 +98,13 @@ local function loadPlayer(src)
     end
 
     local name = GetPlayerName(src) or 'Unknown'
+
+    local allowedToLoad, reason = AY.Hooks.Run('beforePlayerLoad', { source = src, license = license, name = name })
+    if not allowedToLoad then
+        DropPlayer(src, tostring(reason or 'Connection refused.'))
+        return
+    end
+
     local identifiers = json.encode(collectIdentifiers(src))
     local defaultGroup = ServerConfig.Players.DefaultGroup
 
@@ -87,10 +114,10 @@ local function loadPlayer(src)
         row.name, row.identifiers = name, identifiers
     else
         local id = AY.DB.Insert(
-            'INSERT INTO ay_players (license, name, group_name, identifiers, metadata) VALUES (?, ?, ?, ?, ?)',
-            { license, name, defaultGroup, identifiers, '{}' }
+            'INSERT INTO ay_players (license, name, group_name, identifiers, metadata, data) VALUES (?, ?, ?, ?, ?, ?)',
+            { license, name, defaultGroup, identifiers, '{}', '{}' }
         )
-        row = { id = id, license = license, name = name, group_name = defaultGroup, identifiers = identifiers, metadata = '{}' }
+        row = { id = id, license = license, name = name, group_name = defaultGroup, identifiers = identifiers, metadata = '{}', data = '{}' }
     end
 
     if not GetPlayerName(src) then return end -- player left while we were loading
@@ -105,6 +132,10 @@ end
 
 function AY.GetPlayer(src)
     return players[tonumber(src)]
+end
+
+function AY.IsPlayerLoaded(src)
+    return players[tonumber(src)] ~= nil
 end
 
 function AY.GetPlayers()

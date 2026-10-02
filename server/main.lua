@@ -2,8 +2,11 @@ if GetCurrentResourceName() ~= AY.Name then
     print(('^1[%s] This resource must be named "%s" - other resources use that name to access its exports.^7'):format(AY.Name, AY.Name))
 end
 
--- Other resources:  local AY = exports['AY-Core']:GetCore()
+-- Other resources: add  shared_script '@AY-Core/import.lua'  and use the global `AY`.
+-- (Under the hood that calls exports['AY-Core']:GetCore().)
 exports('GetCore', function() return AY end)
+
+AY.Modules.Register(AY.Name, { version = AY.Version })
 
 AY.RegisterCallback('ay-core:getPlayerData', function(src)
     local player = AY.GetPlayer(src)

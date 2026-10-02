@@ -5,13 +5,19 @@ lua54 'yes'
 name 'AY-Core'
 author 'Amirali Yavari'
 description 'AY-Core - a structured, scalable and secure core framework for FiveM.'
-version '0.1.0'
+version '0.2.0'
 
 dependency 'oxmysql'
+
+-- Satellite resources load this with: shared_script '@AY-Core/import.lua'
+files {
+    'import.lua',
+}
 
 shared_scripts {
     'config/shared.lua',
     'shared/utils.lua',
+    'import.lua',
 }
 
 server_scripts {
@@ -20,7 +26,8 @@ server_scripts {
     'server/logger.lua',
     'server/database.lua',
     'server/security.lua',
-    'server/callbacks.lua',
+    'server/hooks.lua',
+    'server/modules.lua',
     'server/player.lua',
     'server/permissions.lua',
     'server/commands.lua',
@@ -28,7 +35,6 @@ server_scripts {
 }
 
 client_scripts {
-    'client/callbacks.lua',
     'client/main.lua',
     'client/spawn.lua',
 }
