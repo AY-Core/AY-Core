@@ -145,7 +145,3 @@ local value = AY.TriggerClientCallback(src, 'name', ...)
 - Use SQL placeholders (`?`) only.
 - Secrets belong in `config/server.lua` or convars, never in `config/shared.lua`.
 - IP addresses are not stored.
-
-## License
-
-Defined by the repository owner.
