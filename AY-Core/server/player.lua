@@ -1,6 +1,12 @@
 local players = {}  -- [source] = player object
 local loading = {}  -- [source] = true while loading from DB
 
+-- Join / leave messages in the server console (toggle: ServerConfig.Logging.LogConnections).
+local function logConnection(message)
+    if ServerConfig.Logging.LogConnections == false then return end
+    AY.Logger.Info('connection', message)
+end
+
 -- Collects identifiers. IP addresses are intentionally NOT stored (privacy / GDPR).
 local function collectIdentifiers(src)
     local ids = {}
@@ -125,7 +131,7 @@ local function loadPlayer(src)
     local player = createPlayer(src, row)
     players[src] = player
 
-    AY.Logger.Info('players', ('Loaded %s (id %s, db %s)'):format(name, src, row.id))
+    logConnection(('%s joined the server (id %s, group %s)'):format(name, src, player.GetGroup()))
     TriggerEvent('ay-core:server:playerLoaded', src)
     TriggerClientEvent('ay-core:client:playerLoaded', src, player.GetPublicData())
 end
@@ -156,12 +162,17 @@ AddEventHandler('playerConnecting', function(_, _, deferrals)
     deferrals.defer()
     Wait(0)
 
+    local name = GetPlayerName(src) or 'Unknown'
+    logConnection(('%s is connecting (id %s)'):format(name, src))
+
     local license = GetPlayerIdentifierByType(src, 'license')
     if not license then
+        logConnection(('%s was rejected: no Rockstar license'):format(name))
         deferrals.done('A valid Rockstar license is required to join this server.')
         return
     end
     if AY.GetPlayerByLicense(license) then
+        logConnection(('%s was rejected: account already connected'):format(name))
         deferrals.done('This account is already connected to the server.')
         return
     end
@@ -189,7 +200,15 @@ AddEventHandler('playerDropped', function(reason)
     loading[src] = nil
 
     local player = players[src]
-    if not player then return end
+    local name = player and player.GetName() or GetPlayerName(src) or 'Unknown'
+    reason = tostring(reason or 'unknown')
+
+    if player then
+        logConnection(('%s left the server (id %s): %s'):format(name, src, reason))
+    else
+        logConnection(('%s disconnected before finishing loading (id %s): %s'):format(name, src, reason))
+        return
+    end
 
     TriggerEvent('ay-core:server:playerDropped', src, reason) -- player still readable here
     player.Save()

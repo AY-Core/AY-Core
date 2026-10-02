@@ -27,6 +27,7 @@ ServerConfig.Security = {
 
 ServerConfig.Logging = {
     Level = 'info',              -- debug | info | warn | error (console)
+    LogConnections = true,       -- print join / leave messages in the server console
     Database = false,            -- also write logs to the ay_logs table
     DatabaseMinLevel = 'warn',
     -- Set in server.cfg:  set ay_log_webhook "https://discord.com/api/webhooks/..."
