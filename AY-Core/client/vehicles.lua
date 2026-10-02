@@ -1,8 +1,5 @@
 -- Client side of /car and /dv. The server checks permission + rate limit, then tells us what to do.
-
-local function notify(message)
-    TriggerEvent('chat:addMessage', { args = { AY.Name, message } })
-end
+-- No chat messages here on purpose; turn on Config.Debug to see what happened in the F8 console.
 
 local function loadVehicleModel(model)
     if not IsModelInCdimage(model) or not IsModelAVehicle(model) then return false end
@@ -16,8 +13,20 @@ local function loadVehicleModel(model)
     return true
 end
 
+-- Returns true if the vehicle is gone afterwards.
 local function removeVehicle(vehicle)
-    if not DoesEntityExist(vehicle) then return end
+    if not DoesEntityExist(vehicle) then return true end
+
+    local ped = PlayerPedId()
+
+    -- Get out first (flag 16 = instantly): deleting a vehicle you are still sitting in can fail silently.
+    if GetVehiclePedIsIn(ped, false) == vehicle then
+        TaskLeaveVehicle(ped, vehicle, 16)
+        local deadline = GetGameTimer() + 1500
+        while GetVehiclePedIsIn(ped, false) == vehicle and GetGameTimer() < deadline do
+            Wait(0)
+        end
+    end
 
     if NetworkGetEntityIsNetworked(vehicle) and not NetworkHasControlOfEntity(vehicle) then
         NetworkRequestControlOfEntity(vehicle)
@@ -30,6 +39,10 @@ local function removeVehicle(vehicle)
     SetEntityAsMissionEntity(vehicle, true, true)
     DeleteVehicle(vehicle)
     if DoesEntityExist(vehicle) then DeleteEntity(vehicle) end
+
+    local gone = not DoesEntityExist(vehicle)
+    if not gone then AY.Debug('Could not delete vehicle', vehicle) end
+    return gone
 end
 
 -- /car [model]
@@ -38,7 +51,7 @@ RegisterNetEvent('ay-core:client:spawnVehicle', function(modelName, deleteCurren
 
     local model = joaat(modelName)
     if not loadVehicleModel(model) then
-        notify(('"%s" is not a valid vehicle model.'):format(modelName))
+        AY.Debug(('"%s" is not a valid vehicle model'):format(modelName))
         return
     end
 
@@ -55,7 +68,7 @@ RegisterNetEvent('ay-core:client:spawnVehicle', function(modelName, deleteCurren
     SetModelAsNoLongerNeeded(model)
 
     if vehicle == 0 then
-        notify('Failed to spawn the vehicle.')
+        AY.Debug('Failed to spawn vehicle', modelName)
         return
     end
 
@@ -63,13 +76,13 @@ RegisterNetEvent('ay-core:client:spawnVehicle', function(modelName, deleteCurren
     SetVehicleHasBeenOwnedByPlayer(vehicle, true)
     SetVehicleNeedsToBeHotwired(vehicle, false)
     SetVehicleOnGroundProperly(vehicle)
-    SetPedIntoVehicle(ped, vehicle, -1)
+    SetPedIntoVehicle(PlayerPedId(), vehicle, -1)
     SetVehicleEngineOn(vehicle, true, true, false)
 end)
 
 -- /dv [radius]  - deletes the vehicle you are in, otherwise the closest one within `radius`.
 RegisterNetEvent('ay-core:client:deleteVehicle', function(radius)
-    if type(radius) ~= 'number' then return end
+    radius = tonumber(radius) or 5.0
 
     local ped = PlayerPedId()
     local vehicle = GetVehiclePedIsIn(ped, false)
@@ -79,7 +92,7 @@ RegisterNetEvent('ay-core:client:deleteVehicle', function(radius)
     end
 
     if vehicle == 0 or not DoesEntityExist(vehicle) then
-        notify('No vehicle found nearby.')
+        AY.Debug('No vehicle found nearby')
         return
     end
 

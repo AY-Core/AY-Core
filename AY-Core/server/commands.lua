@@ -27,19 +27,21 @@ AY.RegisterCommand('setgroup', 'superadmin', function(src, args)
     AY.Reply(src, ('%s is now "%s".'):format(player.GetName(), group))
 end)
 
+-- Vehicle / health commands send no chat messages. Only the server console gets text output.
+local function consoleReply(src, message)
+    if src == 0 then AY.Reply(src, message) end
+end
+
 -- /car [model]  - spawns a vehicle and puts you in the driver seat.
 AY.RegisterCommand('car', ServerConfig.Vehicles.SpawnGroup, function(src, args)
     if src == 0 then
-        AY.Reply(src, 'This command can only be used in-game.')
+        consoleReply(src, 'This command can only be used in-game.')
         return
     end
     if not AY.Security.CheckRate(src, 'cmd:car', { Window = 3000, Max = 3 }) then return end
 
     local model = args[1] and args[1]:lower()
-    if not AY.Utils.IsNonEmptyString(model, 32) or not model:match('^[%w_]+$') then
-        AY.Reply(src, 'Usage: /car [model]  (e.g. /car adder)')
-        return
-    end
+    if not AY.Utils.IsNonEmptyString(model, 32) or not model:match('^[%w_]+$') then return end
 
     TriggerClientEvent('ay-core:client:spawnVehicle', src, model, ServerConfig.Vehicles.DeleteCurrentOnSpawn)
     AY.Logger.Info('vehicles', ('%s (id %s) spawned vehicle "%s"'):format(GetPlayerName(src) or 'unknown', src, model))
@@ -48,7 +50,7 @@ end)
 -- /dv [radius]  - deletes the vehicle you are in, or the closest one within the radius.
 AY.RegisterCommand('dv', ServerConfig.Vehicles.DeleteGroup, function(src, args)
     if src == 0 then
-        AY.Reply(src, 'This command can only be used in-game.')
+        consoleReply(src, 'This command can only be used in-game.')
         return
     end
     if not AY.Security.CheckRate(src, 'cmd:dv', { Window = 3000, Max = 5 }) then return end
@@ -68,7 +70,7 @@ local function healthCommand(name, event, verb)
 
         local target = args[1] and tonumber(args[1]) or src
         if target == 0 or not AY.GetPlayer(target) then
-            AY.Reply(src, ('Usage: /%s [id]  (player must be online and loaded)'):format(name))
+            consoleReply(src, ('Usage: /%s [id]  (player must be online and loaded)'):format(name))
             return
         end
 
@@ -76,7 +78,6 @@ local function healthCommand(name, event, verb)
 
         local actor = src == 0 and 'console' or ('%s (id %s)'):format(GetPlayerName(src) or 'unknown', src)
         AY.Logger.Info('health', ('%s %s %s (id %s)'):format(actor, verb, GetPlayerName(target) or 'unknown', target))
-        AY.Reply(src, ('%s %s.'):format(GetPlayerName(target) or target, verb))
     end
 end
 
